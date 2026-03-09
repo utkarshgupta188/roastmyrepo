@@ -6,7 +6,7 @@ A full-stack web application to analyze Git repositories and generate humorous b
 
 Built with **Next.js**, **TailwindCSS**, and **Framer Motion**.
 
-![Repo Roaster Preview](https://via.placeholder.com/800x400.png?text=Repo+Roaster) 
+![Repo Roaster Preview](https://raw.githubusercontent.com/utkarshgupta188/roastmyrepo/main/frontend/public/preview.png)
 
 ## Features
 - **Sleek Aesthetic Design**: Dark mode by default, gorgeous Framer Motion entrance animations, glowing button hovers, and animated gradients.
