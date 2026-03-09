@@ -41,7 +41,7 @@ Roast my codebase!`;
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "model": "openai/gpt-oss-120b:free", // Fast, smart and cheap standard model
+                "model": "openrouter/auto", // Fast, smart and cheap standard model
                 "messages": [
                     { "role": "system", "content": systemPrompt },
                     { "role": "user", "content": userMessage }
@@ -50,12 +50,20 @@ Roast my codebase!`;
         });
 
         if (!response.ok) {
-            console.error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            console.error(`OpenRouter API error: ${response.status} ${response.statusText}`, errorText);
             return generateHeuristicRoast(metrics); // Fallback on failure
         }
 
         const data = await response.json();
-        return data.choices?.[0]?.message?.content || generateHeuristicRoast(metrics);
+        const aiContent = data.choices?.[0]?.message?.content;
+
+        if (!aiContent) {
+            console.error("OpenRouter API returned unexpected response format:", data);
+            return generateHeuristicRoast(metrics);
+        }
+
+        return aiContent;
     } catch (e) {
         console.error("Failed to connect to OpenRouter:", e);
         return generateHeuristicRoast(metrics);

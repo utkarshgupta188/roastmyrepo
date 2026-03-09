@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { Flame, FileCode, FileType, CheckCircle, XCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Metrics {
     totalFiles: number;
@@ -32,8 +34,19 @@ export default function RoastResult({ roast, metrics }: RoastResultProps) {
                     The Verdict
                 </h2>
 
-                <div className="space-y-4 text-neutral-300 leading-relaxed text-lg whitespace-pre-wrap">
-                    {roast}
+                <div className="prose prose-invert prose-neutral max-w-none text-neutral-300 leading-relaxed
+                    prose-headings:text-white prose-headings:font-bold prose-headings:mt-6 prose-headings:mb-2
+                    prose-h2:text-xl prose-h3:text-lg prose-h3:text-orange-400
+                    prose-strong:text-white prose-strong:font-semibold
+                    prose-code:bg-neutral-800 prose-code:text-orange-300 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
+                    prose-pre:bg-neutral-800 prose-pre:border prose-pre:border-neutral-700 prose-pre:rounded-xl
+                    prose-table:w-full prose-table:border-collapse
+                    prose-th:bg-neutral-800 prose-th:text-white prose-th:text-sm prose-th:font-semibold prose-th:px-4 prose-th:py-2 prose-th:border prose-th:border-neutral-700
+                    prose-td:px-4 prose-td:py-2 prose-td:border prose-td:border-neutral-800 prose-td:text-neutral-300 prose-td:text-sm
+                    prose-hr:border-neutral-700
+                    prose-li:text-neutral-300 prose-ul:my-2 prose-ol:my-2
+                    prose-blockquote:border-l-red-500 prose-blockquote:text-neutral-400">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{roast}</ReactMarkdown>
                 </div>
             </div>
 

@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "axios": "^1.13.6",
     "framer-motion": "^12.35.1",
     "isomorphic-git": "^1.37.2",
@@ -16,6 +17,8 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "simple-git": "^3.32.3"
   },
   "devDependencies": {
