@@ -104,6 +104,8 @@ export async function analyzeRepository(repoPath: string): Promise<Metrics> {
 
     fileStats.sort((a, b) => b.lines - a.lines);
     metrics.largeFiles = fileStats.slice(0, 5);
+    metrics.totalFiles = fileStats.length;
+
     // Build concise code context for AI (up to ~3-4 small files max, plus readme/package)
     let aiContextStr = '';
     if (readmeContent) aiContextStr += `\n--- README.md ---\n${readmeContent.substring(0, 1500)}\n`;
