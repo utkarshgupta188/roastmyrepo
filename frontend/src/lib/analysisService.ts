@@ -47,6 +47,7 @@ export interface Metrics {
     hasReadme: boolean;
     hasGitignore: boolean;
     hasTests: boolean;
+    codeContext?: string; // Content of README, package files, and a few small files
 }
 
 export async function analyzeRepository(repoPath: string): Promise<Metrics> {
@@ -62,14 +63,22 @@ export async function analyzeRepository(repoPath: string): Promise<Metrics> {
         hasTests: false,
     };
 
-    const fileStats: { file: string; lines: number }[] = [];
+    const fileStats: { file: string; lines: number; content: string }[] = [];
+    let readmeContent = '';
+    let packageContent = '';
 
     for (const filePath of files) {
         const fileName = path.basename(filePath);
         const ext = path.extname(fileName).toLowerCase();
 
-        if (fileName.toLowerCase() === 'readme.md') metrics.hasReadme = true;
+        if (fileName.toLowerCase() === 'readme.md') {
+            metrics.hasReadme = true;
+            try { readmeContent = fs.readFileSync(filePath, 'utf-8'); } catch (e) { }
+        }
         if (fileName === '.gitignore') metrics.hasGitignore = true;
+        if (fileName === 'package.json') {
+            try { packageContent = fs.readFileSync(filePath, 'utf-8'); } catch (e) { }
+        }
         if (fileName.includes('test') || fileName.includes('spec')) metrics.hasTests = true;
 
         if (EXTENSION_MAP[ext]) {
@@ -82,7 +91,12 @@ export async function analyzeRepository(repoPath: string): Promise<Metrics> {
             const lines = content.split('\n').length;
             metrics.totalLines += lines;
 
-            fileStats.push({ file: path.relative(repoPath, filePath), lines });
+            // Only store small-ish files for AI context (e.g., < 200 lines)
+            if (lines < 200 && Object.values(EXTENSION_MAP).includes(EXTENSION_MAP[ext])) {
+                fileStats.push({ file: path.relative(repoPath, filePath), lines, content });
+            } else {
+                fileStats.push({ file: path.relative(repoPath, filePath), lines, content: '' });
+            }
         } catch (e) {
             // Ignore binary files
         }
@@ -90,7 +104,19 @@ export async function analyzeRepository(repoPath: string): Promise<Metrics> {
 
     fileStats.sort((a, b) => b.lines - a.lines);
     metrics.largeFiles = fileStats.slice(0, 5);
-    metrics.totalFiles = fileStats.length;
+    // Build concise code context for AI (up to ~3-4 small files max, plus readme/package)
+    let aiContextStr = '';
+    if (readmeContent) aiContextStr += `\n--- README.md ---\n${readmeContent.substring(0, 1500)}\n`;
+    if (packageContent) aiContextStr += `\n--- package.json ---\n${packageContent.substring(0, 1000)}\n`;
+
+    // Get up to 3 small source files to show coding style
+    const smallCodeFiles = fileStats.filter(f => f.content && !f.file.includes('package.json') && !f.file.toLowerCase().includes('readme')).slice(0, 3);
+    for (const f of smallCodeFiles) {
+        aiContextStr += `\n--- ${f.file} ---\n${f.content.substring(0, 1500)}\n`;
+    }
+
+    // Ensure we don't blow up token limits, cap at ~10000 chars
+    metrics.codeContext = aiContextStr.substring(0, 10000);
 
     return metrics;
 }

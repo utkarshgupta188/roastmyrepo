@@ -27,7 +27,7 @@ export async function POST(request: Request) {
             const metrics = await analyzeRepository(repoPath);
 
             console.log(`Generating roast...`);
-            const roastContent = generateRoast(metrics);
+            const roastContent = await generateRoast(metrics);
 
             // Delete instantly before sending a successful response
             if (repoPath) {

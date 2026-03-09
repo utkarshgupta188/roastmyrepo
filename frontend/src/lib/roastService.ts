@@ -1,6 +1,68 @@
 import { Metrics } from './analysisService';
 
-export function generateRoast(metrics: Metrics): string {
+export async function generateRoast(metrics: Metrics): Promise<string> {
+    const { totalFiles, totalLines, languages, largeFiles, hasReadme, hasGitignore, hasTests, codeContext } = metrics;
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    // Fallback to heuristic roasting if no API key is set
+    if (!apiKey) {
+        console.log("No OPENROUTER_API_KEY found, falling back to heuristic roast generator.");
+        return generateHeuristicRoast(metrics);
+    }
+
+    const systemPrompt = `You are a brutal, hilarious, and technically accurate AI code critic. 
+Your job is to roast the user's Git repository based on the provided metrics and code snippets.
+Be mean, sarcastic, but technically precise. Point out bad practices, lack of tests, huge files, weird language choices, 
+or anything else that looks like a junior developer wrote it at 3 AM. 
+Don't hold back. Use Markdown formatting for emphasis, but keep it concise (under 300 words).`;
+
+    const userMessage = `
+Repository Metrics:
+- Total Files: ${totalFiles}
+- Total Lines: ${totalLines}
+- Has README: ${hasReadme}
+- Has Gitignore: ${hasGitignore}
+- Has Tests: ${hasTests}
+- Top Languages: ${JSON.stringify(languages, null, 2)}
+- Largest Files: ${JSON.stringify(largeFiles, null, 2)}
+
+Code Context Snippets (Sample files from the repo):
+${codeContext || "No readable code context extracted."}
+
+Roast my codebase!`;
+
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "HTTP-Referer": "https://roastmyrepo.vercel.app", // Optional, for including your app on openrouter.ai rankings.
+                "X-Title": "Repo Roaster", // Optional. Shows in rankings on openrouter.ai.
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "model": "openai/gpt-oss-120b:free", // Fast, smart and cheap standard model
+                "messages": [
+                    { "role": "system", "content": systemPrompt },
+                    { "role": "user", "content": userMessage }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            console.error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+            return generateHeuristicRoast(metrics); // Fallback on failure
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || generateHeuristicRoast(metrics);
+    } catch (e) {
+        console.error("Failed to connect to OpenRouter:", e);
+        return generateHeuristicRoast(metrics);
+    }
+}
+
+function generateHeuristicRoast(metrics: Metrics): string {
     const roasts: string[] = [];
     const { totalFiles, totalLines, languages, largeFiles, hasReadme, hasGitignore, hasTests } = metrics;
 
