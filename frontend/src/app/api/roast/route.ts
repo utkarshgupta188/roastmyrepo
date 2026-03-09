@@ -2,21 +2,65 @@ import { NextResponse } from 'next/server';
 import { cloneRepository, cleanupRepository, cleanupOldRepositories } from '@/lib/gitService';
 import { analyzeRepository } from '@/lib/analysisService';
 import { generateRoast } from '@/lib/roastService';
+import { checkRateLimit } from '@/lib/rateLimiter';
+
+// Allowed origins — add localhost for dev, production domain for prod
+const ALLOWED_ORIGINS = [
+    'https://roastmyrepo.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+];
+
+function getClientIp(request: Request): string {
+    // Vercel forwards the real IP via x-forwarded-for
+    const forwarded = request.headers.get('x-forwarded-for');
+    if (forwarded) return forwarded.split(',')[0].trim();
+    return 'unknown';
+}
 
 export async function POST(request: Request) {
+    // ── Origin check ──────────────────────────────────────────────────────────
+    const origin = request.headers.get('origin') || '';
+    if (!ALLOWED_ORIGINS.includes(origin)) {
+        console.warn(`Blocked request from disallowed origin: ${origin}`);
+        return NextResponse.json(
+            { error: 'Forbidden: requests must originate from the Repo Roaster site.' },
+            { status: 403 }
+        );
+    }
+
+    // ── Rate limiting ─────────────────────────────────────────────────────────
+    const ip = getClientIp(request);
+    const { allowed, retryAfterSeconds } = checkRateLimit(ip);
+
+    if (!allowed) {
+        console.warn(`Rate limit exceeded for IP: ${ip}`);
+        return NextResponse.json(
+            { error: `Too many requests. Please wait ${retryAfterSeconds} seconds before trying again.` },
+            {
+                status: 429,
+                headers: {
+                    'Retry-After': String(retryAfterSeconds),
+                    'X-RateLimit-Limit': '5',
+                    'X-RateLimit-Window': '60s',
+                },
+            }
+        );
+    }
+
+    // ── Core logic ────────────────────────────────────────────────────────────
     try {
-        const { url } = await request.json();
+        const body = await request.json();
+        const { url } = body;
 
         if (!url) {
             return NextResponse.json({ error: 'Repository URL is required' }, { status: 400 });
         }
 
-        // Fire and forget old repo cleanup (don't specifically wait for it to slow down the request)
+        // Fire and forget old repo cleanup
         cleanupOldRepositories().catch(console.error);
 
-        // Attempting to clone and analyze
-        const repoId = `roastmyrepo-${Date.now().toString()}-` + Math.floor(Math.random() * 1000); // unique ID
-
+        const repoId = `roastmyrepo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         let repoPath: string | null = null;
 
         try {
@@ -29,20 +73,15 @@ export async function POST(request: Request) {
             console.log(`Generating roast...`);
             const roastContent = await generateRoast(metrics);
 
-            // Delete instantly before sending a successful response
             if (repoPath) {
                 await cleanupRepository(repoPath);
                 repoPath = null;
             }
 
-            return NextResponse.json({
-                metrics,
-                roast: roastContent,
-            });
-        } catch (innerError: any) {
+            return NextResponse.json({ metrics, roast: roastContent });
+        } catch (innerError: unknown) {
             console.error('Core error roasting repository:', innerError);
 
-            // Delete instantly before sending an error response
             if (repoPath) {
                 await cleanupRepository(repoPath);
                 repoPath = null;
@@ -57,7 +96,7 @@ export async function POST(request: Request) {
                 await cleanupRepository(repoPath);
             }
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Request parsing error:', error);
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
