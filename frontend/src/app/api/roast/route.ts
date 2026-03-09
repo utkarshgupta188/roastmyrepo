@@ -7,8 +7,6 @@ import { checkRateLimit } from '@/lib/rateLimiter';
 // Allowed origins — add localhost for dev, production domain for prod
 const ALLOWED_ORIGINS = [
     'https://roastmyrepo.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
 ];
 
 function getClientIp(request: Request): string {
