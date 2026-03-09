@@ -142,6 +142,21 @@ export default function Home() {
             </motion.button>
           </div>
         )}
+        {/* Footer */}
+        <div className="w-full mt-24 pb-8 border-t border-neutral-800/50 pt-8 flex flex-col sm:flex-row items-center justify-between text-neutral-500 text-sm">
+          <p>
+            Made with <Flame className="w-4 h-4 inline text-red-500 mx-1" /> by Utkarsh Gupta
+          </p>
+          <a
+            href="https://github.com/utkarshgupta188/roastmyrepo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-white transition-colors mt-4 sm:mt-0"
+          >
+            <Github className="w-4 h-4" />
+            View Source on GitHub
+          </a>
+        </div>
       </div>
     </main>
   );

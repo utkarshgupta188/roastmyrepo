@@ -2,6 +2,8 @@
 
 A full-stack web application to analyze Git repositories and generate humorous but technically accurate "roasts" about their code quality. 
 
+**🔴 LIVE DEMO: [Repo Roaster](https://roastmyrepo.vercel.app/)**
+
 Built with **Next.js**, **TailwindCSS**, and **Framer Motion**.
 
 ![Repo Roaster Preview](https://via.placeholder.com/800x400.png?text=Repo+Roaster) 
